@@ -17,7 +17,8 @@ about the data, refer to the file [README.md](https://github.com/solquist/RepDat
 Since the assignmet calls for using "echo = TRUE" in all of the R code sections,
 we just set that as a global option.
 
-```{r SetOptions, echo = TRUE}
+
+```r
 library(knitr)
 opts_chunk$set(echo = TRUE)
 ```
@@ -26,7 +27,8 @@ Here we read the data and assign to the variable "activity.raw". The data.table
 function "fread()"" is used to provide more options for shaping the data and to
 continue becoming familiar with leveraging data tables instead of data frames.
 
-```{r LoadData}
+
+```r
 library(data.table)
 activity.raw <- fread("activity.csv")
 ```
@@ -40,8 +42,24 @@ as it gives a nice preview of the data. If we wished to supress that, however,
 adding the option "results = 'hide'" would cause only the R code to show in the
 final document.
 
-```{r ProcessDate}
+
+```r
 activity.raw[, date := as.Date(date)]
+```
+
+```
+##        steps       date interval
+##     1:    NA 2012-10-01        0
+##     2:    NA 2012-10-01        5
+##     3:    NA 2012-10-01       10
+##     4:    NA 2012-10-01       15
+##     5:    NA 2012-10-01       20
+##    ---                          
+## 17564:    NA 2012-11-30     2335
+## 17565:    NA 2012-11-30     2340
+## 17566:    NA 2012-11-30     2345
+## 17567:    NA 2012-11-30     2350
+## 17568:    NA 2012-11-30     2355
 ```
 
 The "interval" data encodes the hour and minutes. For example, the time 3:08 PM
@@ -52,7 +70,8 @@ to also introduce a "time" column to our data set. This will also help with the
 fact that the amount of time between 50 and 55 is the same
 as the amount of time between 55 and 100. Let's do that now.
 
-```{r ProcessInterval, results = 'hide'}
+
+```r
 Time <- function(interval) {
   time.string <- paste(floor(interval / 100), interval %% 100)
   as.POSIXct(time.string, format = "%H %M")
@@ -70,7 +89,8 @@ package is used for this and other plots in the report. First we need an aggrega
 set of data that gives us total number of steps per day. We assign this to the
 variable "activity.raw.byday".
 
-```{r TotalPerDay, results = 'hide'}
+
+```r
 activity.raw.byday <- activity.raw[, sum(steps), by = date]
 setnames(activity.raw.byday, "V1", "steps")
 ```
@@ -79,7 +99,8 @@ The histogram shows the distribution of the aggregated data set, i.e. how many
 days fall into the range of each bin (the default bin size for "ggplot()" is
 the range of values divided by 30).
 
-```{r StepsHistogram, results = 'asis', message = FALSE}
+
+```r
 library(ggplot2)
 
 gg <- ggplot(activity.raw.byday, aes(x = steps)) + geom_histogram()
@@ -88,6 +109,8 @@ gg <- gg + theme_bw() + ggtitle("Distribution of Total Step Counts per Day") +
 gg
 ```
 
+![plot of chunk StepsHistogram](figure/StepsHistogram.png) 
+
 The assignment says to "Calculate and report the mean and median total number of
 steps taken per day". The set of data we are working with is the "total number
 of steps taken per day" (the same data used for the histogram above). So,
@@ -95,13 +118,14 @@ there is one value associated with each day and the mean and median are calculat
 across that set of values as opposed to calculating a mean and median for each
 day. This serves as additional information to compliment the histogram.
 
-```{r CalcCenter}
+
+```r
 mean <- activity.raw.byday[, mean(steps, na.rm = TRUE)]
 median <- activity.raw.byday[, median(steps, na.rm = TRUE)]
 ```
 
-The number of total steps per day has a mean of `r mean` and a median of
-`r median`. 
+The number of total steps per day has a mean of 1.0766 &times; 10<sup>4</sup> and a median of
+10765. 
 
 ## What is the average daily activity pattern?
 
@@ -112,14 +136,16 @@ assign that to activity.raw.byinterval. We can use the "time" column we
 created earlier to make sure we don't have artificial gaps in the time series
 that we would get by treating interval as an integer.
 
-```{r AvgPerInterval, hide = TRUE}
+
+```r
 activity.raw.byinterval <- activity.raw[, mean(steps, na.rm = TRUE), by = time]
 setnames(activity.raw.byinterval, "V1", "average.steps")
 ```
 
 Now let's see what that looks like over time.
 
-```{r AvgTimeSeries, results = 'asis', message = FALSE}
+
+```r
 library(scales)
 gg <- ggplot(activity.raw.byinterval, aes(x = time, y = average.steps)) + geom_line()
 gg <- gg + theme_bw() + ggtitle("Average Number of Steps by Time of Day") +
@@ -128,14 +154,17 @@ gg <- gg + scale_x_datetime(labels = date_format("%H:%M"))
 gg
 ```
 
-```{r MaxAvgSteps}
+![plot of chunk AvgTimeSeries](figure/AvgTimeSeries.png) 
+
+
+```r
 max <- activity.raw.byinterval[, max(average.steps)]
 max.time <- activity.raw.byinterval[average.steps == max,][, time]
 ```
 
 Using the calculations above, we can see that
-the maximum average number of steps per day (`r max`) occurs during the 5-minute
-interval starting at `r format.POSIXct(max.time, "%H:%M")`. Note how little
+the maximum average number of steps per day (206.1698) occurs during the 5-minute
+interval starting at 08:35. Note how little
 activity there is late at night through the early morning. It appears the peak
 of activity occurs in the morning, possibly a morning walk or exercise before
 work.
@@ -145,11 +174,12 @@ work.
 Up until now, we have ignored the missing values. We can calculate the missing
 values as follows:
 
-```{r MissingValues}
+
+```r
 missing <- nrow(activity.raw[is.na(steps)])
 ```
 
-From this we see we have `r missing` missing values.
+From this we see we have 2304 missing values.
 
 We have seen above that time of day has a significant impact on the number of
 steps. In a later section, we will also be looking at the effect of weekdays
@@ -158,7 +188,8 @@ average of the number of steps by day of week and interval. To start, let's get
 a table that has this mapping. Since we do not yet have a day of week column,
 we will also need to add that.
 
-```{r MeanTable, results = 'hide'}
+
+```r
 activity.raw[, day := weekdays(date)]
 days <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 activity.raw[, day := factor(day, levels = days)]
@@ -170,7 +201,8 @@ Now that we have a table of replacement values, we can fill in the missing value
 from our table and assign them to the variable "activity". Since "steps" is of
 type integer, we will need to coerce to double to accomodate the mean. 
 
-```{r RemoveNAs, results = 'hide'}
+
+```r
 activity <- data.table(activity.raw)
 activity[, steps := as.double(steps)]
 
@@ -186,7 +218,8 @@ how they differ. As before,  we need an aggregate
 set of data that gives us total number of steps per day. We assign this to the
 variable "activity.byday".
 
-```{r TotalPerDay2, results = 'hide'}
+
+```r
 activity.byday <- activity[, sum(steps), by = date]
 setnames(activity.byday, "V1", "steps")
 ```
@@ -194,7 +227,8 @@ setnames(activity.byday, "V1", "steps")
 The histogram shows the distribution of the aggregated data set, i.e. how many
 days fall into the range of each bin.
 
-```{r StepsHistogram2, results = 'asis', message = FALSE}
+
+```r
 gg <- ggplot(activity.byday, aes(x = steps)) + geom_histogram()
 gg <- gg + theme_bw() +
   ggtitle("Distribution of Total Step Counts per Day\n(NA's replaced with average by weekday and interval)") +
@@ -202,15 +236,18 @@ gg <- gg + theme_bw() +
 gg
 ```
 
+![plot of chunk StepsHistogram2](figure/StepsHistogram2.png) 
+
 Next we calculate the mean and medians to go along with the plot above.
 
-```{r CalcCenter2}
+
+```r
 mean <- activity.byday[, mean(steps, na.rm = TRUE)]
 median <- activity.byday[, median(steps, na.rm = TRUE)]
 ```
 
-The number of total steps per day has a mean of `r mean` and a median of
-`r median`. Comparing this to the previous sections, the effect in this case is
+The number of total steps per day has a mean of 1.0821 &times; 10<sup>4</sup> and a median of
+1.1015 &times; 10<sup>4</sup>. Comparing this to the previous sections, the effect in this case is
 to increase both the mean and standard deviation, so they do differ. The median
 and mean also move further apart after filling in missing values. Although
 the distributions
@@ -231,7 +268,8 @@ In order to compare the two, we will first add a factor variable to the data
 set to split the data into weekdays versus weekends. As days of the week were
 already used in the previous section, we are almost there.
 
-```{r AddWeekends, results = 'hide'}
+
+```r
 weekday <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
 weekend <- c("Saturday", "Sunday")
 activity[day %in% weekday, day.type := "weekday"]
@@ -245,14 +283,16 @@ assign that to activity.byinterval. We can use the "time" column we
 created earlier to make sure we don't have artificial gaps in the time series
 that we would get by treating interval as an integer.
 
-```{r AvgPerInterval2, hide = TRUE}
+
+```r
 activity.byinterval <- activity[, mean(steps), by = c("day.type", "time")]
 setnames(activity.byinterval, "V1", "average.steps")
 ```
 
 Now let's see what that looks like over time.
 
-```{r AvgTimeSeries2, results = 'asis', message = FALSE}
+
+```r
 gg <- ggplot(activity.byinterval, aes(x = time, y = average.steps)) + geom_line()
 gg <- gg + facet_grid(. ~ day.type)
 gg <- gg + theme_bw() +
@@ -262,6 +302,8 @@ gg <- gg + scale_x_datetime(labels = date_format("%H:%M"))
 gg
 ```
 
+![plot of chunk AvgTimeSeries2](figure/AvgTimeSeries2.png) 
+
 With the data separated out by weekends and weekdays, you see some interesting
 information. On the weekdays, there are obvious spikes in the morning, around
 lunch time, and in the evening. On the weekend, there are many more spikes
@@ -270,14 +312,16 @@ starts later on the weekend, which makes sense with people sleeping in.
 
 As a bonus, there are also some interesting differences if you look by day.
 
-```{r AvgPerInterval3, hide = TRUE}
+
+```r
 activity.byinterval <- activity[, mean(steps), by = c("day", "time")]
 setnames(activity.byinterval, "V1", "average.steps")
 ```
 
 Now let's see what that looks like over time.
 
-```{r AvgTimeSeries3, results = 'asis', message = FALSE}
+
+```r
 gg <- ggplot(activity.byinterval, aes(x = time, y = average.steps)) + geom_line()
 gg <- gg + facet_wrap(~ day)
 gg <- gg + theme_bw() +
@@ -286,4 +330,6 @@ gg <- gg + theme_bw() +
 gg <- gg + scale_x_datetime(labels = date_format("%H:%M"))
 gg
 ```
+
+![plot of chunk AvgTimeSeries3](figure/AvgTimeSeries3.png) 
 
